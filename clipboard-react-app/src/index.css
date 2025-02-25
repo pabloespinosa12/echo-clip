@@ -1,0 +1,32 @@
+.app-container {
+  width: 300px;
+  background: white;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.search-bar {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.clipboard-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.clipboard-item {
+  padding: 10px;
+  background: #f5f5f5;
+  border-radius: 5px;
+  margin-bottom: 5px;
+  cursor: pointer;
+}
+
+.clipboard-item:hover {
+  background: #ddd;
+}
