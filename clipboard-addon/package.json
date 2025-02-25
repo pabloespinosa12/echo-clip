@@ -1,0 +1,13 @@
+{
+  "name": "clipboard-addon",
+  "version": "1.0.0",
+  "description": "C++ Addon for Clipboard",
+  "main": "index.js",
+  "scripts": {
+    "install": "node-gyp rebuild"
+  },
+  "dependencies": {
+    "node-addon-api": "^5.1.0"
+  },
+  "devDependencies": {}
+}
