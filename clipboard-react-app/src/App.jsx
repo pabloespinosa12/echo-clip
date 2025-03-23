@@ -21,7 +21,7 @@ function App() {
       console.log("Clipboard event received in React:", text);
       setClipboardHistory((prev) => [text, ...prev]);
     };
-
+ 
     // Attach the listener
     console.log("Attaching clipboard event listener");
     window.electron.onClipboardUpdate(clipboardListener);

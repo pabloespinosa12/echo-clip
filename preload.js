@@ -7,4 +7,5 @@ contextBridge.exposeInMainWorld("electron", {
   removeClipboardUpdate: (callback) => {
     ipcRenderer.removeListener("clipboard-update", callback);
   },
+  copyText: (text) => ipcRenderer.send("copy-text", text)
 });
