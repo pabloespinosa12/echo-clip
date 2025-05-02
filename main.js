@@ -70,13 +70,18 @@ app.whenReady().then(() => {
   });
 
   // dev mode
-  mainWindow.loadURL("http://localhost:5173"); // Load the React app in development mode
+  // mainWindow.loadURL("http://localhost:5173"); // Load the React app in development mode
   // prod mode
-  // mainWindow.loadFile(path.join(__dirname, 'clipboard-react-app', 'dist', 'index.html'));
+  mainWindow.loadFile(path.join(__dirname, 'clipboard-react-app', 'dist', 'index.html'));
 
   mainWindow.on('close', (event) => {
     event.preventDefault();
     mainWindow.hide(); // Hide instead of closing
+  });
+
+  app.setLoginItemSettings({
+    openAtLogin: true,
+    path: app.getPath("exe"),
   });
 });
 
