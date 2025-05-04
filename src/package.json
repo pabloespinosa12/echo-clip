@@ -1,0 +1,36 @@
+{
+  "name": "echo-clip",
+  "version": "1.0.0",
+  "main": "main.js",
+  "build": {
+    "appId": "com.pabloespinosa.echo-clip",
+    "productName": "echo-clip",
+    "win": {
+      "target": "nsis"
+    },
+    "publish": [
+      {
+        "provider": "github"
+      }
+    ]
+  },
+  "scripts": {
+    "dev": "nodemon --exec cross-env NODE_ENV=development electron .",
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "electron-builder",
+    "publish": "electron-builder --publish always"
+  },
+  "author": "pablo espinosa",
+  "license": "MIT",
+  "description": "intelligent clip board booster",
+  "devDependencies": {
+    "electron": "^34.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "dependencies": {
+    "clipboard-event": "^1.6.0",
+    "cross-env": "^7.0.3",
+    "node-keylogger": "^0.0.1"
+  }
+}

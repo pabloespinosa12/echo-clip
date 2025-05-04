@@ -1,0 +1,59 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Prevent scrolling */
+  background-color: #0d1b2a; /* Dark blue */
+  color: #ffffff; /* White text */
+  font-family: 'Arial', sans-serif;
+}
+
+.app-container {
+  width: 300px;
+  background: #0d1b2a; /* Use the same dark blue */
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.search-bar {
+  width: 90%;
+  max-width: 400px;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: #1b263b;
+  color: white;
+  border: 1px solid #415a77;
+  font-size: 16px;
+  outline: none;
+}
+
+.search-bar::placeholder {
+  color: #a1c1de; /* Light blue placeholder */
+}
+
+.clipboard-list {
+  max-height: 300px;
+  width: 90%;
+  overflow-y: auto;
+  background-color: #1b263b; /* Matching dark blue */
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.clipboard-item {
+  background-color: #778da9;
+  padding: 8px;
+  margin-bottom: 5px;
+  border-radius: 5px;
+  max-height: 30px; /* Adjust height as needed */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Limit to 2 lines */
+  -webkit-box-orient: vertical;
+}
+
+.clipboard-item:hover {
+  background: #8aa0bd;
+}
