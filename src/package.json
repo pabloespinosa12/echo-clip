@@ -2,6 +2,10 @@
   "name": "echo-clip",
   "version": "1.0.0",
   "main": "main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pabloespinosa12/echo-clip.git"
+  },
   "build": {
     "appId": "com.pabloespinosa.echo-clip",
     "productName": "echo-clip",

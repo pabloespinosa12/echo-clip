@@ -1,0 +1,35 @@
+name: Release on PR merge into master
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install and build React app
+        working-directory: clipboard-react-app
+        run: |
+          npm install
+          npm run build
+
+      - name: Install Electron app dependencies
+        working-directory: src
+        run: npm install
+
+      - name: Build and publish Electron app
+        working-directory: src
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: npx electron-builder --publish always
