@@ -7,11 +7,16 @@
     "productName": "echo-clip",
     "win": {
       "target": "nsis"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github"
+      }
+    ]
   },
   "scripts": {
+    "dev": "nodemon --exec cross-env NODE_ENV=development electron .",
     "start": "electron .",
-    "dev": "nodemon --exec electron .",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "electron-builder",
     "publish": "electron-builder --publish always"
@@ -25,6 +30,7 @@
   },
   "dependencies": {
     "clipboard-event": "^1.6.0",
+    "cross-env": "^7.0.3",
     "node-keylogger": "^0.0.1"
   }
 }

@@ -4,6 +4,8 @@ const { app, BrowserWindow, clipboard, ipcMain, globalShortcut } = require("elec
 
 let mainWindow;
 
+const isDev = process.env.NODE_ENV === 'development';
+
 app.whenReady().then(() => {
   console.log("Waiting for Ctrl + C...");
   mainWindow = new BrowserWindow({
@@ -22,7 +24,9 @@ app.whenReady().then(() => {
 
   mainWindow.setMenu(null);
 
-  // mainWindow.webContents.openDevTools();
+  if(isDev) {
+    mainWindow.webContents.openDevTools();
+  }
 
   // set up clipboardController
   clipboardController.setClipboardUpdateCallback((copiedText) => {
@@ -38,10 +42,8 @@ app.whenReady().then(() => {
     mainWindow.hide();
   });
 
-  // dev mode
-  // mainWindow.loadURL("http://localhost:5173"); // Load the React app in development mode
-  // prod mode
-  mainWindow.loadFile(path.join(__dirname, '../clipboard-react-app', 'dist', 'index.html'));
+  isDev ? mainWindow.loadURL("http://localhost:5173") 
+  : mainWindow.loadFile(path.join(__dirname, '../clipboard-react-app', 'dist', 'index.html'));
 
   mainWindow.on('close', (event) => {
     event.preventDefault();
