@@ -61,11 +61,13 @@ Feature status as of the current codebase. Do not mark items as done unless the 
 
 ### Cross-platform
 
-- [ ] Linux support
-- [ ] macOS support
-- [ ] Abstract platform-specific clipboard code
-- [ ] Document Electron limitations per OS
-- [ ] Avoid Windows-only patterns outside `clipboard-addon/`
+- [ ] Introduce `clipboard-service.js` platform-agnostic interface
+- [ ] Refactor `src/clipboard-addon/` → `src/native/windows/`
+- [ ] macOS backend (`NSPasteboard` via ObjC++ / Swift bridge)
+- [ ] Linux backend (X11 via XFixes, Wayland via wlroots/protocols)
+- [ ] Avoid Windows-only patterns outside `src/native/`
+
+See [native-clipboard.md](native-clipboard.md) for rationale and target architecture.
 
 ## Suggested implementation order
 

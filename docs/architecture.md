@@ -85,6 +85,12 @@ echo-clip/
 └── .github/workflows/       # CI release pipeline
 ```
 
+## Why native code?
+
+Echo-Clip uses a C++ addon because Electron's clipboard API is too high-level for a history manager — it lacks change notifications, format enumeration, and reliable multi-type reads. See **[Why native clipboard access?](native-clipboard.md)** for the full rationale.
+
+Today: `clipboard-event` detects changes, the C++ addon reads `CF_TEXT`. Tomorrow: native listeners and full format support in the addon layer.
+
 ## Platform-specific code
 
 | Location | Platform |
@@ -92,7 +98,33 @@ echo-clip/
 | `src/clipboard-addon/src/clipboard.cpp` | Windows only (`<windows.h>`, `CF_TEXT`) |
 | Everything else | Electron/JS — portable in theory, tested on Windows only |
 
-When adding cross-platform support, keep OS-specific clipboard reads behind an abstraction in the main process.
+### Current vs target layout
+
+**Today (Windows MVP):**
+
+```
+src/clipboard-addon/    # Windows C++ addon
+```
+
+**Target (cross-platform):**
+
+```
+src/native/
+├── clipboard-service.js   # Platform-agnostic interface
+├── windows/clipboard.cpp
+├── macos/clipboard.mm     # NSPasteboard
+└── linux/clipboard.cpp    # X11 / Wayland
+```
+
+Electron and React should only call the JS service:
+
+```js
+clipboardService.onClipboardChange((item) => {
+  history.add(item);
+});
+```
+
+See [native-clipboard.md](native-clipboard.md) for platform details (Windows API, NSPasteboard, X11/Wayland).
 
 ## Security model
 

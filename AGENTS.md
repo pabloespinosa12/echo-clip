@@ -1,6 +1,6 @@
 # AGENTS.md — AI assistant guide for Echo-Clip
 
-This file helps Cursor and other AI coding assistants understand Echo-Clip before making changes. Read this alongside the [technical docs](docs/) (`docs/architecture.md`, `docs/development.md`, `docs/roadmap.md`). The root `README.md` is the public-facing overview only.
+This file helps Cursor and other AI coding assistants understand Echo-Clip before making changes. Read this alongside the [technical docs](docs/) — especially [docs/native-clipboard.md](docs/native-clipboard.md) for why the C++ addon exists. The root `README.md` is the public-facing overview only.
 
 ---
 
@@ -66,11 +66,11 @@ When the app writes to the clipboard (user selects a history item), **always** c
 - **Read:** C++ addon (`clipboardAddOn.getClipboardContent()`)
 - **Write:** Electron `clipboard.writeText()` in `main.js`
 
-If you change this split, document why. The addon exists for native Win32 access and future multi-format support.
+The addon exists because Electron's clipboard API is too high-level for a history manager — no change events, no format enumeration, poor multi-type support. See [docs/native-clipboard.md](docs/native-clipboard.md). Do not replace the addon with `clipboard.readText()` polling without an explicit decision.
 
 ### 5. Platform-specific code stays isolated
 
-Windows-only code belongs in `src/clipboard-addon/`. Do not sprinkle `#include <windows.h>` logic into JS. When adding Linux/macOS support, introduce a platform abstraction layer rather than `if (win32)` scattered through the controller.
+Windows-only code belongs in `src/clipboard-addon/` (future: `src/native/windows/`). Do not sprinkle `#include <windows.h>` logic into JS. Cross-platform support requires a `clipboard-service.js` interface with per-OS native backends — see [docs/native-clipboard.md](docs/native-clipboard.md).
 
 ### 6. Do not persist data silently
 
@@ -199,6 +199,8 @@ Data flow for re-copying from history:
 
 ### Cross-platform work
 
+Read [docs/native-clipboard.md](docs/native-clipboard.md) before touching clipboard code.
+
 | Component | Platform coupling |
 |-----------|-------------------|
 | `clipboard.cpp` / `clipboard.h` | **Windows only** (`windows.h`, `CF_TEXT`) |
@@ -207,13 +209,17 @@ Data flow for re-copying from history:
 | `globalShortcut` | Electron API — may conflict with OS shortcuts |
 | electron-builder `win.target: nsis` | Windows installer only |
 
-Abstract native clipboard reads behind a JS interface:
+Target pattern — Electron only talks to a JS service:
 
 ```js
-// Future pattern
-const clipboardReader = require('./platform/clipboardReader');
-clipboardReader.getText();
+const clipboardService = require('./native/clipboard-service');
+
+clipboardService.onClipboardChange((item) => {
+  history.add(item);
+});
 ```
+
+Per-OS backends: Windows (Win API), macOS (`NSPasteboard`), Linux (X11 / Wayland).
 
 ---
 

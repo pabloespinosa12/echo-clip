@@ -2,7 +2,7 @@
 
 A lightweight clipboard history manager for Windows. Echo-Clip runs in the background, remembers text you copy, and lets you search and paste from past entries with a global shortcut.
 
-> **Status:** Early development — text-only clipboard history on Windows. See [Roadmap](docs/roadmap.md) for what's coming next.
+> **Status:** Early development — text-only clipboard history on Windows. Uses a native C++ addon for OS-level clipboard access (see [why](docs/native-clipboard.md)). See [Roadmap](docs/roadmap.md) for what's coming next.
 
 ## Features
 
@@ -60,7 +60,7 @@ See [Development guide](docs/development.md) for full setup details.
 
 ## Roadmap
 
-Planned features include pin/delete entries, persistent storage, keyboard navigation, configurable shortcuts, a settings page, system tray support, and cross-platform support.
+Planned features include pin/delete entries, persistent storage, keyboard navigation, configurable shortcuts, a settings page, system tray support, and cross-platform support (Linux/macOS via a platform-abstracted native clipboard layer).
 
 See the full [roadmap](docs/roadmap.md).
 
