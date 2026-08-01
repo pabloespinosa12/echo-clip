@@ -1,294 +1,197 @@
-# Why native clipboard access?
+# Native clipboard layer
 
-Echo-Clip uses a C++ addon with the Windows API instead of relying on Electron's built-in clipboard API. This was one of the more interesting engineering decisions in the project — it turned a simple Electron app into a real OS integration project.
+Echo-Clip uses a native addon for clipboard reads instead of relying only on Electron's clipboard API.
 
-## Short version
+## Rationale
 
-Electron's `clipboard.readText()` is not broken. It works well for normal copy/paste in typical apps. But it is a high-level wrapper around Chromium's clipboard implementation and does not expose the low-level Windows clipboard features that a clipboard history manager needs.
+Electron is sufficient for simple copy and paste operations, but a clipboard history manager needs lower-level clipboard access and tighter control over platform-specific behavior.
 
-For Echo-Clip, we needed native Windows clipboard access, so we added a C++ addon using the Windows API.
+Native access is the foundation for:
 
----
+- direct reads from OS clipboard APIs
+- future format inspection beyond plain text
+- event-driven clipboard integrations where the platform supports them
+- platform-specific implementations behind a stable JavaScript boundary
 
-## What Electron gives you
+The current implementation reads plain text only. Clipboard change notifications are still handled in JavaScript through `clipboard-event`.
+
+## Current architecture
+
+```text
+React UI
+   |
+preload bridge
+   |
+Electron main process
+   |
+clipboardController.js
+   |
+clipboard-event  ->  clipboard-addon
+                     |
+                     +-- Windows: Win32 clipboard API
+                     +-- macOS: NSPasteboard
+```
+
+Responsibilities are split as follows:
+
+- `src/controllers/clipboardController.js` listens for clipboard change events and applies deduplication and skip logic.
+- `src/clipboard-addon/src/addon.cpp` exposes the native function to Node.js through N-API.
+- `src/clipboard-addon/src/clipboard.cpp` implements clipboard reads on Windows.
+- `src/clipboard-addon/src/clipboard_mac.mm` implements clipboard reads on macOS.
+- `src/main.js` forwards clipboard updates to the renderer and uses Electron for clipboard writes.
+
+The native module currently exports one synchronous function:
 
 ```js
-const { clipboard } = require('electron');
-
-const text = clipboard.readText();
+clipboardAddOn.getClipboardContent()
 ```
 
-This internally uses Chromium's clipboard implementation. It supports:
+The controller calls that function after `clipboard-event` emits a change event.
 
-```js
-clipboard.readText();
-clipboard.writeText("hello");
-clipboard.readImage();
-clipboard.readHTML();
+## Runtime flow
+
+```text
+OS clipboard change
+   |
+clipboard-event emits "change"
+   |
+clipboardController reads clipboardAddOn.getClipboardContent()
+   |
+main process sends "clipboard-update" to renderer
+   |
+React updates in-memory history
 ```
 
-**Good for:**
+Clipboard writes follow a separate path:
 
-- Copy/paste functionality
-- Simple utilities
-- Reading the current clipboard content on demand
-
-**Not enough for Echo-Clip.**
-
----
-
-## Problem 1: Clipboard history requires listening to changes
-
-A clipboard manager needs to react every time the user copies something:
-
-```
-User copies text
-        |
-        v
-Windows clipboard changes
-        |
-        v
-Echo-Clip receives event
-        |
-        v
-Store item in history
+```text
+Renderer click
+   |
+window.electron.copyText(text)
+   |
+ipcMain "copy-text"
+   |
+clipboardController.skipClipboardChange()
+   |
+Electron clipboard.writeText(text)
 ```
 
-### What Windows provides
+## Native module structure
 
-Windows has a native clipboard notification system:
+The addon is split into a Node-facing layer and an OS-facing layer.
 
-- `AddClipboardFormatListener(hwnd)` — register for updates
-- `WM_CLIPBOARDUPDATE` — sent whenever the clipboard changes
+### Node-facing layer
 
-This is **event-driven**: the OS notifies you immediately when something changes.
+`src/clipboard-addon/src/addon.cpp` registers the module and converts native strings into JavaScript strings. The module is built as `clipboard.node`, which is the standard binary extension for Node.js native addons.
 
-### What Electron provides
+### OS-facing layer
 
-Electron does **not** expose `AddClipboardFormatListener` or `WM_CLIPBOARDUPDATE` directly.
+- Windows uses Win32 APIs such as `OpenClipboard` and `GetClipboardData`.
+- macOS uses `NSPasteboard` through Objective-C++ in `clipboard_mac.mm`.
 
-The fallback with Electron's API is polling:
+The `.mm` extension is required on macOS because the implementation mixes C++ types with Cocoa APIs.
 
-```js
-setInterval(() => {
-  clipboard.readText();
-}, 500);
-```
+## `binding.gyp`
 
-```
-10:00:00.0  check clipboard -> "hello"
-10:00:00.5  check clipboard -> "hello"
-10:00:01.0  check clipboard -> "hello"
-10:00:01.5  check clipboard -> "password123"
-```
+`binding.gyp` is the build configuration file used by `node-gyp`. It defines the native target, the source files to compile, and the platform-specific build rules.
 
-Problems with polling:
+Current shape:
 
-- Inefficient
-- Delayed detection (up to the poll interval)
-- Unnecessary CPU usage
-- Misses some clipboard types
-- Feels hacky
-
-A native listener is event-driven and immediate.
-
-### Current implementation
-
-Today, Echo-Clip uses the `clipboard-event` npm package for change detection (which wraps native OS notifications on Windows) combined with the C++ addon for reading content. The C++ layer does not yet implement `AddClipboardFormatListener` directly — that is a natural next step as the native layer matures.
-
----
-
-## Problem 2: Accessing clipboard formats
-
-The Windows clipboard is not text-only. Data is stored in multiple formats:
-
-| Format | Example |
-|--------|---------|
-| `CF_TEXT` | Plain ANSI text |
-| `CF_UNICODETEXT` | Unicode text |
-| `CF_BITMAP` | Image data |
-| `CF_HDROP` | File paths |
-| HTML Format | Rich HTML content |
-| Custom formats | App-specific data |
-
-### Example: copying a file from Explorer
-
-The clipboard contains:
-
-```
-CF_HDROP
-  C:\Users\Pablo\Desktop\test.pdf
-```
-
-But:
-
-```js
-clipboard.readText()
-// returns ""
-```
-
-because it is not text.
-
-A clipboard manager needs to know: **is this text, an image, a file, rich text, or a URL?**
-
-### What the Windows API provides
-
-```cpp
-UINT format = 0;
-while ((format = EnumClipboardFormats(format)) != 0) {
-    // inspect each format on the clipboard
+```json
+{
+  "targets": [
+    {
+      "target_name": "clipboard",
+      "sources": ["src/addon.cpp"],
+      "conditions": [
+        ["OS=='win'", {
+          "sources": ["src/clipboard.cpp"]
+        }],
+        ["OS=='mac'", {
+          "sources": ["src/clipboard_mac.mm"],
+          "link_settings": {
+            "libraries": [
+              "-framework Foundation",
+              "-framework AppKit"
+            ]
+          }
+        }]
+      ]
+    }
+  ]
 }
 ```
 
-Electron does not expose `EnumClipboardFormats()` or equivalent format inspection.
+This configuration means:
 
-### Current implementation
+- always compile `addon.cpp`
+- compile `clipboard.cpp` on Windows
+- compile `clipboard_mac.mm` on macOS
+- link `Foundation` and `AppKit` on macOS for `NSPasteboard`
 
-The C++ addon currently reads **`CF_TEXT` only**. Format enumeration and multi-type support are planned — this is exactly why the native addon exists.
+## Build process
 
----
+The addon is built from `src/clipboard-addon/`.
 
-## Problem 3: Clipboard ownership and timing
-
-Windows clipboard ownership is tricky. When an app copies content:
-
-```
-Chrome copies text
-       |
-       v
-Chrome writes to clipboard
-       |
-       v
-Echo-Clip immediately reads
+```bash
+cd src/clipboard-addon
+npm install
 ```
 
-Sometimes the clipboard is still owned by the source application. Native code can handle this with more control:
+The package install script runs:
 
-```cpp
-OpenClipboard(hwnd);
-GetClipboardData(format);
-CloseClipboard();
+```json
+"install": "node scripts/rebuild.js"
 ```
 
-Electron's high-level API abstracts this away, which is fine for one-off reads but limits control for a manager that reads on every change.
+`scripts/rebuild.js` resolves `node-gyp` either from the shell PATH or from the copy bundled inside npm, then runs `node-gyp rebuild`.
 
----
+`node-gyp rebuild`:
 
-## Why the C++ addon was the right solution
+1. reads `binding.gyp`
+2. generates platform-specific build files
+3. compiles and links the native target
+4. writes the output to `build/Release/clipboard.node`
 
-The architecture became:
-
-```
-                React UI
-                   |
-             Electron IPC
-                   |
-          Node.js main process
-                   |
-          C++ native addon
-                   |
-       Windows Clipboard API
-```
-
-The C++ addon is responsible for (now and in the future):
-
-- Listening for clipboard changes (via `clipboard-event` today; native listener later)
-- Reading clipboard formats (`CF_TEXT` today; full enumeration later)
-- Extracting native clipboard data
-- Sending events back to Electron
-
-Conceptually:
-
-```cpp
-void onClipboardUpdate() {
-    std::string content = readClipboard();
-    sendToNode(content);
-}
-```
-
-Then the main process receives the update and stores it:
+That binary is loaded by the main process with:
 
 ```js
-// Future shape once format support is added
-clipboardAddon.onChange((item) => {
-  history.add(item);  // { type, content, formats, ... }
-});
+require('../clipboard-addon/build/Release/clipboard')
 ```
 
-**Writing** to the clipboard still uses Electron's `clipboard.writeText()` in `main.js` — that part of the Electron API is sufficient for re-copying text from history.
+The output format depends on the platform:
 
----
+- Windows builds a PE/COFF binary
+- macOS builds a Mach-O binary
 
-## Implications for Linux and macOS
+The generated file must be rebuilt on each platform. A Windows-built `clipboard.node` cannot be loaded on macOS, and a macOS-built `clipboard.node` cannot be loaded on Windows.
 
-The Windows implementation at `src/clipboard-addon/src/clipboard.cpp` cannot run everywhere. Cross-platform support requires separate native implementations behind a shared interface.
+## Current scope
 
-### Target architecture
+Implemented today:
 
-```
-clipboard-service (JS interface)
-        |
- -------------------------
- |           |           |
-Windows     macOS       Linux
-C++         ObjC++      C++
-Win API     NSPaste     X11 / Wayland
-```
+- native clipboard text reads on Windows
+- native clipboard text reads on macOS
+- JS-driven clipboard change detection through `clipboard-event`
+- Electron clipboard writes for re-copying text
 
-Electron and React only talk to the service:
+Not implemented yet:
 
-```js
-clipboardService.onClipboardChange((item) => {
-  history.add(item);
-});
-```
+- native clipboard change listeners inside the addon
+- clipboard format enumeration
+- image, file, and rich-text clipboard support
+- Linux native backend
 
-This keeps the UI and main-process logic platform-independent.
+## Target direction
 
-### Platform notes
+The long-term structure is a platform-agnostic clipboard service with per-platform native backends:
 
-**Windows** — Windows Clipboard API (`OpenClipboard`, `EnumClipboardFormats`, `AddClipboardFormatListener`). Current implementation lives in `src/clipboard-addon/`.
-
-**macOS** — `NSPasteboard` via Objective-C++, Swift bridge, or a Node native addon:
-
-```objc
-NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
+```text
+clipboard-service
+   |
+   +-- windows
+   +-- macos
+   +-- linux
 ```
 
-**Linux** — More complicated due to multiple clipboard systems:
-
-| Display server | Mechanism |
-|----------------|-----------|
-| X11 | XFixes extension |
-| Wayland | wlroots / Wayland protocols |
-
-Clipboard persistence and behavior also differ across Linux desktop environments.
-
-### Suggested future directory layout
-
-```
-src/native/
-├── clipboard-service.js      # Platform-agnostic JS interface
-├── windows/
-│   └── clipboard.cpp
-├── macos/
-│   └── clipboard.mm
-└── linux/
-    └── clipboard.cpp         # X11 / Wayland abstraction inside
-```
-
-Today everything lives in `src/clipboard-addon/` as a Windows-only MVP. Refactor to this layout when adding a second platform.
-
----
-
-## Summary
-
-| Need | Electron API | Native Windows API |
-|------|-------------|-------------------|
-| Read current text | Yes | Yes |
-| Listen for changes | No (poll only) | Yes (`WM_CLIPBOARDUPDATE`) |
-| Enumerate formats | No | Yes (`EnumClipboardFormats`) |
-| Read files/images | Limited / empty | Yes (`CF_HDROP`, `CF_BITMAP`) |
-| Control read timing | No | Yes (`OpenClipboard` / ownership) |
-
-Echo-Clip chose native access not because Electron is broken, but because a clipboard history manager is an OS integration problem — and that requires operating at the OS level.
+That would keep the main-process and renderer logic stable while moving platform-specific clipboard behavior behind a dedicated service boundary.

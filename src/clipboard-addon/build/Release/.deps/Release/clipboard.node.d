@@ -1,0 +1,1 @@
+cmd_Release/clipboard.node := c++ -bundle -undefined dynamic_lookup -Wl,-search_paths_first -mmacosx-version-min=10.15 -arch arm64 -L./Release -stdlib=libc++  -o Release/clipboard.node Release/obj.target/clipboard/src/addon.o Release/obj.target/clipboard/src/clipboard_mac.o -framework Foundation -framework AppKit

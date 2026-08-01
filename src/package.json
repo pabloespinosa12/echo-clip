@@ -19,7 +19,7 @@
     ]
   },
   "scripts": {
-    "dev": "nodemon --exec cross-env NODE_ENV=development electron .",
+    "dev": "nodemon --exec NODE_ENV=development electron .",
     "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "electron-builder",
@@ -29,12 +29,10 @@
   "license": "MIT",
   "description": "intelligent clip board booster",
   "devDependencies": {
-    "electron": "^34.2.0",
-    "electron-builder": "^26.0.12"
+    "electron": "^34.2.0"
   },
   "dependencies": {
     "clipboard-event": "^1.6.0",
-    "cross-env": "^7.0.3",
     "node-keylogger": "^0.0.1"
   }
 }

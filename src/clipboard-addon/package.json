@@ -4,10 +4,8 @@
   "description": "C++ Addon for Clipboard",
   "main": "index.js",
   "scripts": {
-    "install": "node-gyp rebuild"
+    "install": "node scripts/rebuild.js"
   },
-  "dependencies": {
-    "node-addon-api": "^5.1.0"
-  },
+  "dependencies": {},
   "devDependencies": {}
 }
