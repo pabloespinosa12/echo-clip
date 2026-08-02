@@ -57,6 +57,6 @@ app.whenReady().then(() => {
 });
 
 app.on('will-quit', () => {
-    clipboardListener.stopListening();
+  clipboardController.stopListening();
 });
 

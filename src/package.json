@@ -32,7 +32,7 @@
     "electron": "^34.2.0"
   },
   "dependencies": {
-    "clipboard-event": "^1.6.0",
+    "@pabloespinosa12/clipboard-event": "^1.6.1",
     "node-keylogger": "^0.0.1"
   }
 }
