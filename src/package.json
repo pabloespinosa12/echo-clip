@@ -29,7 +29,7 @@
   "license": "MIT",
   "description": "intelligent clip board booster",
   "devDependencies": {
-    "electron": "^34.2.0"
+    "electron": "^39.8.5"
   },
   "dependencies": {
     "@pabloespinosa12/clipboard-event": "^1.6.1",
