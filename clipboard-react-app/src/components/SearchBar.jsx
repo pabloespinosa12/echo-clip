@@ -1,13 +1,16 @@
 function SearchBar({ searchTerm, setSearchTerm }) {
-    return (
+  return (
+    <div className="search-wrapper">
+      <span className="search-icon" aria-hidden="true">⌕</span>
       <input
         className="search-bar"
         type="text"
-        placeholder="Search clipboard..."
+        placeholder="Search clipboard"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
       />
-    );
-  }
-  
-  export default SearchBar;  
+    </div>
+  );
+}
+
+export default SearchBar;
