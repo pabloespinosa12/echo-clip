@@ -3,16 +3,24 @@
     {
       "target_name": "clipboard",
       "sources": [
-        "src/addon.cpp",
-        "src/clipboard.cpp"
+        "src/addon.cpp"
       ],
-      "include_dirs": [
-        "<!@(node -p \"require('node-addon-api').include\")"
-      ],
-      "defines": ["NAPI_DISABLE_CPP_EXCEPTIONS"],
-      "dependencies": ["<!(node -p \"require('node-addon-api').gyp\")"],
       "cflags!": ["-fno-exceptions"],
-      "cflags_cc!": ["-fno-exceptions"]
+      "cflags_cc!": ["-fno-exceptions"],
+      "conditions": [
+        ["OS=='win'", {
+          "sources": ["src/clipboard.cpp"]
+        }],
+        ["OS=='mac'", {
+          "sources": ["src/clipboard_mac.mm"],
+          "link_settings": {
+            "libraries": [
+              "-framework Foundation",
+              "-framework AppKit"
+            ]
+          }
+        }]
+      ]
     }
   ]
 }

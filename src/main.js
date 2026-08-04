@@ -8,9 +8,14 @@ const isDev = process.env.NODE_ENV === 'development';
 
 app.whenReady().then(() => {
   console.log("Waiting for Ctrl + C...");
+
   mainWindow = new BrowserWindow({
-    width:330, 
-    height: 445,
+    width: 450,
+    height: 470,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -57,6 +62,6 @@ app.whenReady().then(() => {
 });
 
 app.on('will-quit', () => {
-    clipboardListener.stopListening();
+  clipboardController.stopListening();
 });
 

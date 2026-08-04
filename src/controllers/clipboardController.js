@@ -1,4 +1,4 @@
-const clipboardListener = require('clipboard-event');
+const clipboardListener = require('@pabloespinosa12/clipboard-event');
 const clipboardAddOn = require('../clipboard-addon/build/Release/clipboard');
 
 class ClipboardController {
